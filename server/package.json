@@ -1,0 +1,19 @@
+{
+  "name": "chatbot-server",
+  "version": "1.0.0",
+  "description": "Chatbot FAQ Server with Database",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["chatbot", "faq", "express", "sqlite"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^11.0.0"
+  }
+}
