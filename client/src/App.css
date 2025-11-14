@@ -1,0 +1,42 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0;
+  background: #2c3e50;
+  border-bottom: 3px solid #34495e;
+}
+
+.app-nav button {
+  flex: 1;
+  padding: 18px 24px;
+  background: transparent;
+  border: none;
+  color: #ecf0f1;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+}
+
+.app-nav button:hover {
+  background: rgba(52, 152, 219, 0.1);
+}
+
+.app-nav button.active {
+  background: white;
+  color: #2c3e50;
+  border-bottom-color: #3498db;
+}
+
+.app-content {
+  flex: 1;
+  overflow: hidden;
+}
