@@ -1,155 +1,183 @@
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// 環境変数の読み込み
+dotenv.config();
 
-const db = new Database(join(__dirname, '../chatbot.db'));
+// Supabaseクライアントの初期化
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// データベースの初期化
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// データベースの初期化（Supabaseでは不要だが互換性のために残す）
 export function initDatabase() {
-  // scenariosテーブルの作成
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS scenarios (
-      id TEXT PRIMARY KEY,
-      message TEXT NOT NULL,
-      html_content TEXT,
-      parent_id TEXT,
-      order_index INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // optionsテーブルの作成（シナリオの選択肢）
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS options (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      scenario_id TEXT NOT NULL,
-      text TEXT NOT NULL,
-      next_scenario_id TEXT NOT NULL,
-      order_index INTEGER DEFAULT 0,
-      FOREIGN KEY (scenario_id) REFERENCES scenarios(id) ON DELETE CASCADE,
-      FOREIGN KEY (next_scenario_id) REFERENCES scenarios(id) ON DELETE CASCADE
-    )
-  `);
-
-  console.log('Database initialized successfully');
+  console.log('Connected to Supabase successfully');
+  console.log('Please ensure tables are created in Supabase dashboard or using schema.sql');
 }
 
 // シナリオの全取得
-export function getAllScenarios() {
-  const scenarios = db.prepare('SELECT * FROM scenarios ORDER BY order_index').all();
+export async function getAllScenarios() {
+  const { data: scenarios, error } = await supabase
+    .from('scenarios')
+    .select('*')
+    .order('order_index');
+
+  if (error) throw error;
 
   // 各シナリオの選択肢も取得
-  const scenariosWithOptions = scenarios.map(scenario => {
-    const options = db.prepare('SELECT * FROM options WHERE scenario_id = ? ORDER BY order_index').all(scenario.id);
-    return {
-      ...scenario,
-      options
-    };
-  });
+  const scenariosWithOptions = await Promise.all(
+    scenarios.map(async (scenario) => {
+      const { data: options } = await supabase
+        .from('options')
+        .select('*')
+        .eq('scenario_id', scenario.id)
+        .order('order_index');
+
+      return {
+        ...scenario,
+        options: options || []
+      };
+    })
+  );
 
   return scenariosWithOptions;
 }
 
 // 特定のシナリオを取得
-export function getScenarioById(id) {
-  const scenario = db.prepare('SELECT * FROM scenarios WHERE id = ?').get(id);
+export async function getScenarioById(id) {
+  const { data: scenario, error } = await supabase
+    .from('scenarios')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (scenario) {
-    const options = db.prepare('SELECT * FROM options WHERE scenario_id = ? ORDER BY order_index').all(id);
-    return {
-      ...scenario,
-      options
-    };
-  }
+  if (error) return null;
 
-  return null;
+  const { data: options } = await supabase
+    .from('options')
+    .select('*')
+    .eq('scenario_id', id)
+    .order('order_index');
+
+  return {
+    ...scenario,
+    options: options || []
+  };
 }
 
 // シナリオの作成
-export function createScenario(data) {
+export async function createScenario(data) {
   const { id, message, html_content, parent_id, order_index } = data;
 
-  const stmt = db.prepare(`
-    INSERT INTO scenarios (id, message, html_content, parent_id, order_index)
-    VALUES (?, ?, ?, ?, ?)
-  `);
+  const { error } = await supabase
+    .from('scenarios')
+    .insert({
+      id,
+      message,
+      html_content: html_content || null,
+      parent_id: parent_id || null,
+      order_index: order_index || 0
+    });
 
-  const result = stmt.run(id, message, html_content || null, parent_id || null, order_index || 0);
+  if (error) throw error;
 
-  return getScenarioById(id);
+  return await getScenarioById(id);
 }
 
 // シナリオの更新
-export function updateScenario(id, data) {
+export async function updateScenario(id, data) {
   const { message, html_content, parent_id, order_index } = data;
 
-  const stmt = db.prepare(`
-    UPDATE scenarios
-    SET message = ?, html_content = ?, parent_id = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+  const { error } = await supabase
+    .from('scenarios')
+    .update({
+      message,
+      html_content: html_content || null,
+      parent_id: parent_id || null,
+      order_index: order_index || 0,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id);
 
-  stmt.run(message, html_content || null, parent_id || null, order_index || 0, id);
+  if (error) throw error;
 
-  return getScenarioById(id);
+  return await getScenarioById(id);
 }
 
 // シナリオの削除
-export function deleteScenario(id) {
-  // 関連するoptionsも自動的に削除される（CASCADE）
-  const stmt = db.prepare('DELETE FROM scenarios WHERE id = ?');
-  const result = stmt.run(id);
+export async function deleteScenario(id) {
+  // 関連するoptionsを先に削除（Supabaseでもカスケード設定すれば自動削除される）
+  await supabase.from('options').delete().eq('scenario_id', id);
 
-  return result.changes > 0;
+  const { error } = await supabase
+    .from('scenarios')
+    .delete()
+    .eq('id', id);
+
+  return !error;
 }
 
 // 選択肢の作成
-export function createOption(data) {
+export async function createOption(data) {
   const { scenario_id, text, next_scenario_id, order_index } = data;
 
-  const stmt = db.prepare(`
-    INSERT INTO options (scenario_id, text, next_scenario_id, order_index)
-    VALUES (?, ?, ?, ?)
-  `);
+  const { data: option, error } = await supabase
+    .from('options')
+    .insert({
+      scenario_id,
+      text,
+      next_scenario_id,
+      order_index: order_index || 0
+    })
+    .select()
+    .single();
 
-  const result = stmt.run(scenario_id, text, next_scenario_id, order_index || 0);
+  if (error) throw error;
 
-  return db.prepare('SELECT * FROM options WHERE id = ?').get(result.lastInsertRowid);
+  return option;
 }
 
 // 選択肢の更新
-export function updateOption(id, data) {
+export async function updateOption(id, data) {
   const { text, next_scenario_id, order_index } = data;
 
-  const stmt = db.prepare(`
-    UPDATE options
-    SET text = ?, next_scenario_id = ?, order_index = ?
-    WHERE id = ?
-  `);
+  const { data: option, error } = await supabase
+    .from('options')
+    .update({
+      text,
+      next_scenario_id,
+      order_index: order_index || 0
+    })
+    .eq('id', id)
+    .select()
+    .single();
 
-  stmt.run(text, next_scenario_id, order_index || 0, id);
+  if (error) throw error;
 
-  return db.prepare('SELECT * FROM options WHERE id = ?').get(id);
+  return option;
 }
 
 // 選択肢の削除
-export function deleteOption(id) {
-  const stmt = db.prepare('DELETE FROM options WHERE id = ?');
-  const result = stmt.run(id);
+export async function deleteOption(id) {
+  const { error } = await supabase
+    .from('options')
+    .delete()
+    .eq('id', id);
 
-  return result.changes > 0;
+  return !error;
 }
 
 // シナリオIDに紐づく選択肢を全削除
-export function deleteOptionsByScenarioId(scenarioId) {
-  const stmt = db.prepare('DELETE FROM options WHERE scenario_id = ?');
-  const result = stmt.run(scenarioId);
+export async function deleteOptionsByScenarioId(scenarioId) {
+  const { error, count } = await supabase
+    .from('options')
+    .delete()
+    .eq('scenario_id', scenarioId);
 
-  return result.changes;
+  return count || 0;
 }
-
-export default db;

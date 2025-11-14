@@ -31,9 +31,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // シナリオの全取得
-app.get('/api/scenarios', (req, res) => {
+app.get('/api/scenarios', async (req, res) => {
   try {
-    const scenarios = getAllScenarios();
+    const scenarios = await getAllScenarios();
     res.json(scenarios);
   } catch (error) {
     console.error('Error fetching scenarios:', error);
@@ -42,9 +42,9 @@ app.get('/api/scenarios', (req, res) => {
 });
 
 // 特定のシナリオを取得
-app.get('/api/scenarios/:id', (req, res) => {
+app.get('/api/scenarios/:id', async (req, res) => {
   try {
-    const scenario = getScenarioById(req.params.id);
+    const scenario = await getScenarioById(req.params.id);
 
     if (scenario) {
       res.json(scenario);
@@ -58,7 +58,7 @@ app.get('/api/scenarios/:id', (req, res) => {
 });
 
 // シナリオの作成
-app.post('/api/scenarios', (req, res) => {
+app.post('/api/scenarios', async (req, res) => {
   try {
     const { id, message, html_content, parent_id, order_index, options } = req.body;
 
@@ -67,22 +67,22 @@ app.post('/api/scenarios', (req, res) => {
     }
 
     // シナリオを作成
-    const scenario = createScenario({ id, message, html_content, parent_id, order_index });
+    const scenario = await createScenario({ id, message, html_content, parent_id, order_index });
 
     // 選択肢があれば作成
     if (options && Array.isArray(options)) {
-      options.forEach((option, index) => {
-        createOption({
+      for (const [index, option] of options.entries()) {
+        await createOption({
           scenario_id: id,
           text: option.text,
           next_scenario_id: option.next_scenario_id,
           order_index: option.order_index ?? index
         });
-      });
+      }
     }
 
     // 更新されたシナリオを返す
-    const updatedScenario = getScenarioById(id);
+    const updatedScenario = await getScenarioById(id);
     res.status(201).json(updatedScenario);
   } catch (error) {
     console.error('Error creating scenario:', error);
@@ -91,7 +91,7 @@ app.post('/api/scenarios', (req, res) => {
 });
 
 // シナリオの更新
-app.put('/api/scenarios/:id', (req, res) => {
+app.put('/api/scenarios/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { message, html_content, parent_id, order_index, options } = req.body;
@@ -101,7 +101,7 @@ app.put('/api/scenarios/:id', (req, res) => {
     }
 
     // シナリオを更新
-    const scenario = updateScenario(id, { message, html_content, parent_id, order_index });
+    const scenario = await updateScenario(id, { message, html_content, parent_id, order_index });
 
     if (!scenario) {
       return res.status(404).json({ error: 'Scenario not found' });
@@ -109,20 +109,20 @@ app.put('/api/scenarios/:id', (req, res) => {
 
     // 選択肢を更新（既存を削除して再作成）
     if (options && Array.isArray(options)) {
-      deleteOptionsByScenarioId(id);
+      await deleteOptionsByScenarioId(id);
 
-      options.forEach((option, index) => {
-        createOption({
+      for (const [index, option] of options.entries()) {
+        await createOption({
           scenario_id: id,
           text: option.text,
           next_scenario_id: option.next_scenario_id,
           order_index: option.order_index ?? index
         });
-      });
+      }
     }
 
     // 更新されたシナリオを返す
-    const updatedScenario = getScenarioById(id);
+    const updatedScenario = await getScenarioById(id);
     res.json(updatedScenario);
   } catch (error) {
     console.error('Error updating scenario:', error);
@@ -131,10 +131,10 @@ app.put('/api/scenarios/:id', (req, res) => {
 });
 
 // シナリオの削除
-app.delete('/api/scenarios/:id', (req, res) => {
+app.delete('/api/scenarios/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const success = deleteScenario(id);
+    const success = await deleteScenario(id);
 
     if (success) {
       res.json({ message: 'Scenario deleted successfully' });
@@ -148,7 +148,7 @@ app.delete('/api/scenarios/:id', (req, res) => {
 });
 
 // 選択肢の作成
-app.post('/api/options', (req, res) => {
+app.post('/api/options', async (req, res) => {
   try {
     const { scenario_id, text, next_scenario_id, order_index } = req.body;
 
@@ -156,7 +156,7 @@ app.post('/api/options', (req, res) => {
       return res.status(400).json({ error: 'scenario_id, text, and next_scenario_id are required' });
     }
 
-    const option = createOption({ scenario_id, text, next_scenario_id, order_index });
+    const option = await createOption({ scenario_id, text, next_scenario_id, order_index });
     res.status(201).json(option);
   } catch (error) {
     console.error('Error creating option:', error);
@@ -165,7 +165,7 @@ app.post('/api/options', (req, res) => {
 });
 
 // 選択肢の更新
-app.put('/api/options/:id', (req, res) => {
+app.put('/api/options/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { text, next_scenario_id, order_index } = req.body;
@@ -174,7 +174,7 @@ app.put('/api/options/:id', (req, res) => {
       return res.status(400).json({ error: 'text and next_scenario_id are required' });
     }
 
-    const option = updateOption(id, { text, next_scenario_id, order_index });
+    const option = await updateOption(id, { text, next_scenario_id, order_index });
 
     if (option) {
       res.json(option);
@@ -188,10 +188,10 @@ app.put('/api/options/:id', (req, res) => {
 });
 
 // 選択肢の削除
-app.delete('/api/options/:id', (req, res) => {
+app.delete('/api/options/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const success = deleteOption(id);
+    const success = await deleteOption(id);
 
     if (success) {
       res.json({ message: 'Option deleted successfully' });

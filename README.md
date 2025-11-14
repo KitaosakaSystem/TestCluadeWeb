@@ -4,11 +4,12 @@ Reactとデータベースを使用した、カスタマイズ可能なシナリ
 
 ## 特徴
 
-- **データベース連携**: SQLiteを使用してシナリオと回答を管理
+- **データベース連携**: Supabase (PostgreSQL) を使用してシナリオと回答を管理
 - **管理画面**: ブラウザから直接シナリオの追加・編集・削除が可能
 - **HTML対応**: 回答内容にHTMLタグを使用して、リッチなコンテンツを表示
 - **医療系デザイン**: さわやかな水色ベースのデザイン
 - **レスポンシブ**: モバイルデバイスでも快適に利用可能
+- **クラウドホスティング**: Supabaseによる安全なクラウドデータベース
 
 ## プロジェクト構成
 
@@ -27,14 +28,23 @@ Reactとデータベースを使用した、カスタマイズ可能なシナリ
 │   ├── index.js         # Express API サーバー
 │   ├── database.js      # データベース操作
 │   ├── seed.js          # 初期データ投入
+│   ├── schema.sql       # Supabaseテーブル作成SQL
+│   ├── .env.example     # 環境変数のテンプレート
 │   └── package.json
-├── chatbot.db           # SQLite データベース
 └── README.md
 ```
 
 ## セットアップ
 
-### 1. 依存関係のインストール
+### 1. Supabaseプロジェクトの作成
+
+1. [Supabase](https://supabase.com/) にアクセスしてアカウントを作成
+2. 新しいプロジェクトを作成
+3. プロジェクトのURLとAPIキーを取得：
+   - Settings → API → Project URL
+   - Settings → API → Project API keys → anon public
+
+### 2. 依存関係のインストール
 
 ```bash
 # バックエンド
@@ -46,14 +56,38 @@ cd ../client
 npm install
 ```
 
-### 2. データベースの初期化
+### 3. 環境変数の設定
+
+```bash
+# server/.env ファイルを作成
+cd server
+cp .env.example .env
+```
+
+`.env` ファイルを編集して、Supabaseの接続情報を設定：
+
+```env
+SUPABASE_URL=your-project-url.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+PORT=3001
+```
+
+### 4. データベーステーブルの作成
+
+Supabase Dashboard で以下の手順を実行：
+
+1. SQL Editor を開く
+2. `server/schema.sql` の内容をコピー
+3. SQL Editor に貼り付けて実行
+
+### 5. 初期データの投入
 
 ```bash
 cd server
 node seed.js
 ```
 
-### 3. サーバーの起動
+### 6. サーバーの起動
 
 **ターミナル1: バックエンドサーバー**
 ```bash
@@ -68,6 +102,10 @@ cd client
 npm run dev
 # → http://localhost:5173 で起動
 ```
+
+### 7. ブラウザでアクセス
+
+`http://localhost:5173` を開いて、チャットボットをお試しください。
 
 ## 使い方
 
@@ -141,7 +179,7 @@ npm run dev
 
 | カラム名 | 型 | 説明 |
 |---------|-----|------|
-| id | INTEGER | オプションID（主キー） |
+| id | BIGSERIAL | オプションID（主キー） |
 | scenario_id | TEXT | 所属するシナリオID |
 | text | TEXT | 選択肢のテキスト |
 | next_scenario_id | TEXT | 次に表示するシナリオID |
@@ -165,8 +203,9 @@ npm run dev
 
 - **フロントエンド**: React 18 + Vite
 - **バックエンド**: Node.js + Express
-- **データベース**: SQLite (better-sqlite3)
+- **データベース**: Supabase (PostgreSQL)
 - **スタイリング**: CSS (モジュール化なし)
+- **環境変数**: dotenv
 
 ## ライセンス
 

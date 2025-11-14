@@ -4,13 +4,14 @@ import {
   createOption
 } from './database.js';
 
-console.log('🌱 Seeding database with initial data...');
+async function seedDatabase() {
+  console.log('🌱 Seeding database with initial data...');
 
-// データベース初期化
-initDatabase();
+  // データベース初期化
+  initDatabase();
 
-// 初期データの投入
-const scenarios = [
+  // 初期データの投入
+  const scenarios = [
   {
     id: 'start',
     message: 'こんにちは！サポートチャットボットです。',
@@ -161,54 +162,61 @@ const scenarios = [
     parent_id: 'billing',
     order_index: 9
   }
-];
+  ];
 
-const options = [
-  // startからの選択肢
-  { scenario_id: 'start', text: 'ログインできない', next_scenario_id: 'login', order_index: 0 },
-  { scenario_id: 'start', text: 'サービスの使い方がわからない', next_scenario_id: 'usage', order_index: 1 },
-  { scenario_id: 'start', text: 'エラーが表示される', next_scenario_id: 'error', order_index: 2 },
-  { scenario_id: 'start', text: '料金について知りたい', next_scenario_id: 'billing', order_index: 3 },
+  const options = [
+    // startからの選択肢
+    { scenario_id: 'start', text: 'ログインできない', next_scenario_id: 'login', order_index: 0 },
+    { scenario_id: 'start', text: 'サービスの使い方がわからない', next_scenario_id: 'usage', order_index: 1 },
+    { scenario_id: 'start', text: 'エラーが表示される', next_scenario_id: 'error', order_index: 2 },
+    { scenario_id: 'start', text: '料金について知りたい', next_scenario_id: 'billing', order_index: 3 },
 
-  // loginからの選択肢
-  { scenario_id: 'login', text: 'パスワードを忘れた', next_scenario_id: 'login_password', order_index: 0 },
-  { scenario_id: 'login', text: 'アカウントがロックされた', next_scenario_id: 'login_locked', order_index: 1 },
+    // loginからの選択肢
+    { scenario_id: 'login', text: 'パスワードを忘れた', next_scenario_id: 'login_password', order_index: 0 },
+    { scenario_id: 'login', text: 'アカウントがロックされた', next_scenario_id: 'login_locked', order_index: 1 },
 
-  // 詳細ページから「最初に戻る」
-  { scenario_id: 'login_password', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
-  { scenario_id: 'login_locked', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
+    // 詳細ページから「最初に戻る」
+    { scenario_id: 'login_password', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
+    { scenario_id: 'login_locked', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
 
-  // usageからの選択肢
-  { scenario_id: 'usage', text: '基本的な操作方法', next_scenario_id: 'usage_basic', order_index: 0 },
-  { scenario_id: 'usage_basic', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
+    // usageからの選択肢
+    { scenario_id: 'usage', text: '基本的な操作方法', next_scenario_id: 'usage_basic', order_index: 0 },
+    { scenario_id: 'usage_basic', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
 
-  // errorからの選択肢
-  { scenario_id: 'error', text: '「通信エラー」と表示される', next_scenario_id: 'error_network', order_index: 0 },
-  { scenario_id: 'error_network', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
+    // errorからの選択肢
+    { scenario_id: 'error', text: '「通信エラー」と表示される', next_scenario_id: 'error_network', order_index: 0 },
+    { scenario_id: 'error_network', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 },
 
-  // billingからの選択肢
-  { scenario_id: 'billing', text: '料金プランについて', next_scenario_id: 'billing_plan', order_index: 0 },
-  { scenario_id: 'billing_plan', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 }
-];
+    // billingからの選択肢
+    { scenario_id: 'billing', text: '料金プランについて', next_scenario_id: 'billing_plan', order_index: 0 },
+    { scenario_id: 'billing_plan', text: '最初に戻る', next_scenario_id: 'start', order_index: 0 }
+  ];
 
-// シナリオを投入
-scenarios.forEach(scenario => {
-  try {
-    createScenario(scenario);
-    console.log(`✓ Created scenario: ${scenario.id}`);
-  } catch (error) {
-    console.error(`✗ Error creating scenario ${scenario.id}:`, error.message);
+  // シナリオを投入
+  for (const scenario of scenarios) {
+    try {
+      await createScenario(scenario);
+      console.log(`✓ Created scenario: ${scenario.id}`);
+    } catch (error) {
+      console.error(`✗ Error creating scenario ${scenario.id}:`, error.message);
+    }
   }
-});
 
-// 選択肢を投入
-options.forEach(option => {
-  try {
-    createOption(option);
-    console.log(`✓ Created option: ${option.text} (${option.scenario_id} → ${option.next_scenario_id})`);
-  } catch (error) {
-    console.error(`✗ Error creating option:`, error.message);
+  // 選択肢を投入
+  for (const option of options) {
+    try {
+      await createOption(option);
+      console.log(`✓ Created option: ${option.text} (${option.scenario_id} → ${option.next_scenario_id})`);
+    } catch (error) {
+      console.error(`✗ Error creating option:`, error.message);
+    }
   }
-});
 
-console.log('\n✅ Database seeding completed!');
+  console.log('\n✅ Database seeding completed!');
+}
+
+// 関数を実行
+seedDatabase().catch(error => {
+  console.error('❌ Seeding failed:', error);
+  process.exit(1);
+});
