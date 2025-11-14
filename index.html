@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サポートチャットボット - よくあるお問い合わせ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'ヒラギノ角ゴ ProN', 'Hiragino Kaku Gothic ProN', 'メイリオ', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 123, 255, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 30px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e3f2fd;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+            color: white;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #42a5f5;
+            color: #2196f3;
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .option-button:hover {
+            background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .option-button:active {
+            transform: translateX(3px);
+        }
+
+        .restart-button {
+            background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+            border: 1px solid #e3f2fd;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #42a5f5;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .footer {
+            background: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .bot-avatar {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+            border-radius: 50%;
+            margin-right: 10px;
+            position: relative;
+            top: -5px;
+        }
+
+        .bot-avatar::before {
+            content: "🏥";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>サポートチャットボット</h1>
+            <p>お困りの内容を選択してください。最適な解決方法をご案内いたします。</p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <!-- メッセージがここに表示されます -->
+        </div>
+
+        <div class="footer">
+            <p>24時間いつでもご利用いただけます | お困りの際はお気軽にお問い合わせください</p>
+        </div>
+    </div>
+
+    <script>
+        // シナリオデータ
+        const scenarios = {
+            start: {
+                message: "こんにちは！サポートチャットボットです。\n\nどのようなお困りごとでしょうか？",
+                options: [
+                    { text: "ログインできない", next: "login" },
+                    { text: "サービスの使い方がわからない", next: "usage" },
+                    { text: "エラーが表示される", next: "error" },
+                    { text: "料金について知りたい", next: "billing" }
+                ]
+            },
+            login: {
+                message: "ログインに関するお困りですね。具体的にどのような状況でしょうか？",
+                options: [
+                    { text: "パスワードを忘れた", next: "login_password" },
+                    { text: "アカウントがロックされた", next: "login_locked" },
+                    { text: "ログインボタンが反応しない", next: "login_button" }
+                ]
+            },
+            login_password: {
+                message: "パスワードをお忘れの場合は、以下の手順で再設定できます：\n\n1. ログイン画面の「パスワードを忘れた方」をクリック\n2. 登録済みのメールアドレスを入力\n3. 届いたメールのリンクから新しいパスワードを設定\n\nメールが届かない場合は、迷惑メールフォルダもご確認ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            login_locked: {
+                message: "アカウントがロックされた場合：\n\n【原因】\n連続して誤ったパスワードを入力すると、セキュリティのため一時的にロックされます。\n\n【解決方法】\n30分後に自動的に解除されます。それまでお待ちください。\n\n緊急の場合は、サポートセンター（0120-XXX-XXX）までお電話ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            login_button: {
+                message: "ログインボタンが反応しない場合：\n\n【対処方法】\n1. ブラウザのキャッシュをクリア\n2. 別のブラウザで試してみる\n3. JavaScript が有効になっているか確認\n4. ページを更新（F5キー）\n\n改善しない場合は、推奨ブラウザ（Chrome、Edge、Safari）をご利用ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            usage: {
+                message: "サービスの使い方についてのご質問ですね。どの機能についてお知りになりたいですか？",
+                options: [
+                    { text: "基本的な操作方法", next: "usage_basic" },
+                    { text: "データの登録・編集方法", next: "usage_data" },
+                    { text: "レポートの見方", next: "usage_report" }
+                ]
+            },
+            usage_basic: {
+                message: "基本的な操作方法：\n\n【初めての方へ】\n1. ダッシュボードから各機能にアクセス\n2. 左側のメニューから目的の機能を選択\n3. 「？」アイコンでヘルプを表示\n\n詳しい操作ガイドは、メニューの「ヘルプ」→「操作マニュアル」からご覧いただけます。\n\nチュートリアル動画もご用意しております。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            usage_data: {
+                message: "データの登録・編集方法：\n\n【新規登録】\n1. 「新規作成」ボタンをクリック\n2. 必要項目を入力\n3. 「保存」ボタンで登録完了\n\n【編集】\n1. 対象データをクリック\n2. 「編集」ボタンをクリック\n3. 内容を変更して「保存」\n\n※自動保存機能により、入力中のデータは一時保存されます。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            usage_report: {
+                message: "レポートの見方：\n\n【レポート機能】\n・ダッシュボードで全体の概要を確認\n・期間を指定してデータを抽出\n・グラフ表示で視覚的に把握\n・CSV/PDF形式でエクスポート可能\n\n【カスタマイズ】\n表示項目は「設定」から自由にカスタマイズできます。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            error: {
+                message: "エラーが表示されているのですね。どのようなエラーでしょうか？",
+                options: [
+                    { text: "「通信エラー」と表示される", next: "error_network" },
+                    { text: "「権限がありません」と表示される", next: "error_permission" },
+                    { text: "画面が真っ白になる", next: "error_blank" },
+                    { text: "その他のエラー", next: "error_other" }
+                ]
+            },
+            error_network: {
+                message: "通信エラーの対処法：\n\n【確認事項】\n1. インターネット接続を確認\n2. ファイアウォール設定を確認\n3. VPN接続時は一時的に解除して試す\n\n【解決方法】\n・ブラウザを再起動\n・ルーターを再起動\n・時間をおいて再度アクセス\n\nサーバーメンテナンス中の可能性もあります。お知らせをご確認ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            error_permission: {
+                message: "「権限がありません」エラーについて：\n\n【原因】\nアクセスしようとした機能に対する権限が付与されていません。\n\n【解決方法】\n管理者に以下を依頼してください：\n・必要な権限の付与\n・ユーザーロールの変更\n\n管理者が不明な場合は、サポートセンターまでお問い合わせください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            error_blank: {
+                message: "画面が真っ白になる場合：\n\n【対処方法】\n1. ブラウザのキャッシュとCookieを削除\n2. ブラウザを最新版に更新\n3. 拡張機能を一時的に無効化\n4. シークレットモードで試す\n\n【推奨環境】\nChrome、Edge、Safari の最新版\n\n改善しない場合は、エラーログを添えてサポートまでご連絡ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            error_other: {
+                message: "その他のエラーについて：\n\n【基本的な対処法】\n1. エラーメッセージをスクリーンショット\n2. ブラウザとOSのバージョンを確認\n3. 再現手順をメモ\n\n【お問い合わせ】\n以下の情報と共にサポートセンターまでご連絡ください：\n・エラーメッセージ\n・発生した操作\n・使用環境\n\nメール：support@example.com\n電話：0120-XXX-XXX（平日9:00-18:00）",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            billing: {
+                message: "料金に関するお問い合わせですね。具体的にどのような内容でしょうか？",
+                options: [
+                    { text: "料金プランについて", next: "billing_plan" },
+                    { text: "支払い方法について", next: "billing_payment" },
+                    { text: "請求書について", next: "billing_invoice" }
+                ]
+            },
+            billing_plan: {
+                message: "料金プランについて：\n\n【プラン一覧】\n・ベーシック：月額 ¥5,000\n  - ユーザー数：5名まで\n  - ストレージ：10GB\n\n・スタンダード：月額 ¥15,000\n  - ユーザー数：20名まで\n  - ストレージ：50GB\n\n・プレミアム：月額 ¥30,000\n  - ユーザー数：無制限\n  - ストレージ：200GB\n\nプラン変更はいつでも可能です。詳細は「料金ページ」をご覧ください。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            billing_payment: {
+                message: "お支払い方法について：\n\n【利用可能な支払い方法】\n・クレジットカード（Visa、MasterCard、JCB、AMEX）\n・銀行振込（法人のみ）\n・口座振替\n\n【変更方法】\n設定 → お支払い情報 → 支払い方法の変更\n\n自動更新により、毎月の決済が自動的に行われます。",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            },
+            billing_invoice: {
+                message: "請求書について：\n\n【請求書の発行】\n・毎月1日に前月分を発行\n・マイページからPDFダウンロード可能\n・メールでも自動送信\n\n【領収書】\n決済完了後、マイページから発行できます。\n\n【請求に関するお問い合わせ】\n経理部門：billing@example.com\n電話：0120-XXX-XXX（平日9:00-17:00）",
+                options: [
+                    { text: "最初に戻る", next: "start" }
+                ]
+            }
+        };
+
+        const chatContainer = document.getElementById('chatContainer');
+        let currentScenario = 'start';
+
+        // メッセージを追加
+        function addMessage(text, isBot = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isBot ? 'bot' : 'user'}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = text.replace(/\n/g, '<br>');
+
+            if (isBot) {
+                const avatar = document.createElement('span');
+                avatar.className = 'bot-avatar';
+                messageDiv.appendChild(avatar);
+            }
+
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // タイピングインジケーターを表示
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = 'typing-indicator';
+
+            const avatar = document.createElement('span');
+            avatar.className = 'bot-avatar';
+            typingDiv.appendChild(avatar);
+
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<span></span><span></span><span></span>';
+
+            typingDiv.appendChild(indicator);
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // タイピングインジケーターを削除
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // 選択肢を表示
+        function showOptions(options) {
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'options';
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option.text;
+                button.onclick = () => handleOptionClick(option.text, option.next);
+                optionsDiv.appendChild(button);
+            });
+
+            chatContainer.appendChild(optionsDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 選択肢クリック時の処理
+        function handleOptionClick(text, next) {
+            // すべての選択肢を削除
+            document.querySelectorAll('.options').forEach(el => el.remove());
+
+            // ユーザーの選択を表示
+            addMessage(text, false);
+
+            // タイピングインジケーターを表示
+            showTypingIndicator();
+
+            // 少し遅延してボットの応答を表示
+            setTimeout(() => {
+                hideTypingIndicator();
+                showScenario(next);
+            }, 800);
+        }
+
+        // シナリオを表示
+        function showScenario(scenarioKey) {
+            currentScenario = scenarioKey;
+            const scenario = scenarios[scenarioKey];
+
+            if (scenario) {
+                addMessage(scenario.message);
+
+                if (scenario.options) {
+                    showOptions(scenario.options);
+                }
+            }
+        }
+
+        // 最初のメッセージを表示
+        showTypingIndicator();
+        setTimeout(() => {
+            hideTypingIndicator();
+            showScenario('start');
+        }, 500);
+    </script>
+</body>
+</html>
